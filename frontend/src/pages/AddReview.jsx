@@ -16,7 +16,8 @@ function AddReview() {
     genre: 'Pop',
     rating: '5',
     mood: 'Happy',
-    reflection: ''
+    reflection: '',
+    coverArt: ''
   })
 
   const handleChange = (e) => {
@@ -32,7 +33,8 @@ function AddReview() {
     try {
       const newReview = {
         ...formData,
-        rating: parseInt(formData.rating)
+        rating: parseInt(formData.rating),
+        coverArt: formData.coverArt || `https://placehold.co/400x400/1f2329/9aa0a6?text=${encodeURIComponent(formData.album)}`
       }
       
       const savedReview = await reviewsAPI.create(newReview)
@@ -81,6 +83,22 @@ function AddReview() {
               placeholder="e.g., Frank Ocean"
               disabled={loading}
             />
+          </div>
+  
+          <div>
+            <label htmlFor={generateId('coverArt')}>Cover Image URL</label>
+            <input
+              id={generateId('coverArt')}
+              name="coverArt"
+              type="url"
+              value={formData.coverArt}
+              onChange={handleChange}
+              placeholder="https://example.com/album-cover.jpg"
+              disabled={loading}
+            />
+            <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginTop: '-0.5rem' }}>
+              Leave blank to use placeholder
+            </p>
           </div>
   
           <div>

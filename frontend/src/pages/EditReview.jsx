@@ -17,7 +17,8 @@ function EditReview() {
     genre: '',
     rating: '5',
     mood: '',
-    reflection: ''
+    reflection: '',
+    coverArt: ''
   })
 
   useEffect(() => {
@@ -36,7 +37,6 @@ function EditReview() {
         navigate('/dashboard')
       }
     } catch (err) {
-      // Fall back to local state
       const review = reviews.find(r => r._id === id || r.id === id)
       if (review) {
         setFormData({
@@ -126,6 +126,28 @@ function EditReview() {
               required
               disabled={loading}
             />
+          </div>
+  
+          <div>
+            <label htmlFor={generateId('coverArt')}>Cover Image URL</label>
+            <input
+              id={generateId('coverArt')}
+              name="coverArt"
+              type="url"
+              value={formData.coverArt}
+              onChange={handleChange}
+              placeholder="https://example.com/album-cover.jpg"
+              disabled={loading}
+            />
+            {formData.coverArt && (
+              <div style={{ marginTop: '0.5rem' }}>
+                <img 
+                  src={formData.coverArt} 
+                  alt="Preview" 
+                  style={{ maxWidth: '200px', borderRadius: '8px' }}
+                />
+              </div>
+            )}
           </div>
   
           <div>

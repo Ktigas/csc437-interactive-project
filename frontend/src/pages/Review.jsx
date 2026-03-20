@@ -3,30 +3,55 @@ import { useParams, useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import Stars from '../components/Stars'
 import { ReviewContext } from '../App'
+import { reviewsAPI } from '../utils/api'
 
 function Review() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { reviews, setReviews } = useContext(ReviewContext)
   const [review, setReview] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    const found = reviews.find(r => r.id === id)
-    if (found) {
-      setReview(found)
-    } else {
-      navigate('/dashboard')
-    }
-  }, [id, reviews, navigate])
+    fetchReview()
+  }, [id])
 
-  const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this review?')) {
-      setReviews(reviews.filter(r => r.id !== id))
-      navigate('/dashboard')
+  const fetchReview = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      // Try to get from API first
+      const data = await reviewsAPI.getOne(id)
+      setReview(data)
+    } catch (err) {
+      // Fall back to local state if API fails
+      const found = reviews.find(r => r._id === id || r.id === id)
+      if (found) {
+        setReview(found)
+      } else {
+        setError('Review not found')
+      }
+    } finally {
+      setLoading(false)
     }
   }
 
-  if (!review) return <main>Loading...</main>
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this review?')) {
+      try {
+        await reviewsAPI.delete(id)
+        setReviews(reviews.filter(r => r._id !== id && r.id !== id))
+        navigate('/dashboard')
+      } catch (err) {
+        setError(err.message)
+      }
+    }
+  }
+
+  if (loading) return <main>Loading review...</main>
+  if (error) return <main className="error">{error}</main>
+  if (!review) return <main>Review not found</main>
 
   return (
     <>

@@ -1,21 +1,41 @@
-import { useState, useContext } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { Link } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import ReviewCard from '../components/ReviewCard'
 import Stars from '../components/Stars'
-import { ReviewContext } from '../App'
+import { ReviewContext, AuthContext } from '../App'
+import { reviewsAPI } from '../utils/api'
 
-function Dashboard({ user }) {
-  const { reviews } = useContext(ReviewContext)
+function Dashboard() {
+  const { reviews, setReviews } = useContext(ReviewContext)
+  const { user } = useContext(AuthContext)
   const [filterRating, setFilterRating] = useState('all')
   const [filterGenre, setFilterGenre] = useState('all')
   const [appliedFilters, setAppliedFilters] = useState({ rating: 'all', genre: 'all' })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    fetchReviews();
+  }, []);
+
+  const fetchReviews = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await reviewsAPI.getAll();
+      setReviews(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const applyFilters = () => {
     setAppliedFilters({ rating: filterRating, genre: filterGenre })
   }
 
-  // Filter reviews based on applied filters
   const filteredReviews = reviews.filter(review => {
     if (appliedFilters.rating === '4-5' && review.rating < 4) return false
     if (appliedFilters.rating === '3' && review.rating !== 3) return false
@@ -24,15 +44,37 @@ function Dashboard({ user }) {
     return true
   })
 
-  // Calculate average rating of filtered reviews
   const avgRating = filteredReviews.length > 0 
     ? filteredReviews.reduce((sum, r) => sum + r.rating, 0) / filteredReviews.length 
     : 0
 
-  // Get unique genres for filter dropdown
   const genres = ['all', ...new Set(reviews.map(r => r.genre))]
 
-  // Generate stable IDs
+  if (loading) {
+    return (
+      <>
+        <NavBar title="Trackd" />
+        <main>
+          <div style={{ textAlign: 'center', padding: '2rem' }}>Loading reviews...</div>
+        </main>
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <NavBar title="Trackd" />
+        <main>
+          <div className="error" style={{ textAlign: 'center', padding: '2rem' }}>
+            Error: {error}
+            <button onClick={fetchReviews} style={{ marginLeft: '1rem' }}>Retry</button>
+          </div>
+        </main>
+      </>
+    );
+  }
+
   const ratingFilterId = 'rating-filter'
   const genreFilterId = 'genre-filter'
 
@@ -104,7 +146,7 @@ function Dashboard({ user }) {
   
         <section className="grid grid-3">
           {filteredReviews.map(review => (
-            <ReviewCard key={review.id} review={review} />
+            <ReviewCard key={review._id} review={review} />
           ))}
         </section>
         

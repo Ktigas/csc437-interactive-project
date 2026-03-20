@@ -2,10 +2,13 @@ import { useState, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import { ReviewContext } from '../App'
+import { reviewsAPI } from '../utils/api'
 
 function AddReview() {
   const navigate = useNavigate()
-  const { reviews, setReviews } = useContext(ReviewContext)
+  const { setReviews } = useContext(ReviewContext)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   
   const [formData, setFormData] = useState({
     album: '',
@@ -21,23 +24,27 @@ function AddReview() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
+    setLoading(true)
+    setError('')
     
-    // Create new review with unique ID
-    const newReview = {
-      ...formData,
-      id: Date.now().toString(),
-      rating: parseInt(formData.rating),
-      coverArt: `https://placehold.co/400x400/1f2329/9aa0a6?text=${formData.album.replace(/\s+/g, '+')}`,
-      date: new Date().toISOString().split('T')[0]
+    try {
+      const newReview = {
+        ...formData,
+        rating: parseInt(formData.rating)
+      }
+      
+      const savedReview = await reviewsAPI.create(newReview)
+      setReviews(prev => [savedReview, ...prev])
+      navigate('/dashboard')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
     }
-    
-    setReviews([newReview, ...reviews])
-    navigate('/dashboard')
   }
 
-  // Generate unique IDs for form fields
   const generateId = (field) => `add-${field}-${Math.random().toString(36).substr(2, 6)}`
 
   return (
@@ -46,6 +53,8 @@ function AddReview() {
       
       <main className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
         <h2>Add New Review</h2>
+  
+        {error && <div className="error">{error}</div>}
   
         <form onSubmit={handleSubmit}>
           <div>
@@ -57,6 +66,7 @@ function AddReview() {
               onChange={handleChange}
               required
               placeholder="e.g., Blonde"
+              disabled={loading}
             />
           </div>
   
@@ -69,6 +79,7 @@ function AddReview() {
               onChange={handleChange}
               required
               placeholder="e.g., Frank Ocean"
+              disabled={loading}
             />
           </div>
   
@@ -79,6 +90,7 @@ function AddReview() {
               name="genre"
               value={formData.genre}
               onChange={handleChange}
+              disabled={loading}
             >
               <option>Pop</option>
               <option>R&B</option>
@@ -97,6 +109,7 @@ function AddReview() {
               name="rating"
               value={formData.rating}
               onChange={handleChange}
+              disabled={loading}
             >
               {[5,4,3,2,1].map(num => (
                 <option key={num} value={num}>{num} star{num !== 1 ? 's' : ''}</option>
@@ -111,6 +124,7 @@ function AddReview() {
               name="mood"
               value={formData.mood}
               onChange={handleChange}
+              disabled={loading}
             >
               <option>Happy</option>
               <option>Reflective</option>
@@ -132,12 +146,15 @@ function AddReview() {
               onChange={handleChange}
               placeholder="Write your thoughts about this album..."
               style={{ resize: 'vertical' }}
+              disabled={loading}
             />
           </div>
   
           <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-            <button type="submit">Save Review</button>
-            <button type="button" onClick={() => navigate('/dashboard')} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)' }}>
+            <button type="submit" disabled={loading}>
+              {loading ? 'Saving...' : 'Save Review'}
+            </button>
+            <button type="button" onClick={() => navigate('/dashboard')} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)' }} disabled={loading}>
               Cancel
             </button>
           </div>

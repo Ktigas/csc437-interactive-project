@@ -1,30 +1,61 @@
-import { useState } from 'react'
+import { useState, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
+import { authAPI, setAuthToken } from '../utils/api'
+import { AuthContext } from '../App'
 
-function Login({ setUser }) {
+function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { setUser } = useContext(AuthContext)
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault()
+    setError('')
+    setLoading(true)
     
-    // Accept any credentials for MVP
-    if (email && password) {
-      setUser({ 
-        email, 
-        name: email.split('@')[0] || 'Music Listener',
-        memberSince: 'January 2024'
-      })
-      navigate('/dashboard')
-    } else {
-      setError('Please enter both email and password')
+    try {
+      const data = await authAPI.login({ email, password });
+      setAuthToken(data.token);
+      setUser(data.user);
+      // Store user data in localStorage
+      localStorage.setItem('userName', data.user.name);
+      localStorage.setItem('userEmail', data.user.email);
+      localStorage.setItem('memberSince', data.user.memberSince);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setLoading(false);
     }
   }
 
-  // Generate stable IDs for form inputs
+  const handleRegister = async (e) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    
+    const name = email.split('@')[0];
+    
+    try {
+      const data = await authAPI.register({ email, password, name });
+      setAuthToken(data.token);
+      setUser(data.user);
+      // Store user data in localStorage
+      localStorage.setItem('userName', data.user.name);
+      localStorage.setItem('userEmail', data.user.email);
+      localStorage.setItem('memberSince', data.user.memberSince);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.message || 'Registration failed');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const emailId = 'login-email'
   const passwordId = 'login-password'
 
@@ -49,6 +80,7 @@ function Login({ setUser }) {
               aria-invalid={!!error}
               aria-describedby={error ? 'login-error' : undefined}
               required
+              disabled={loading}
             />
           </div>
 
@@ -63,18 +95,24 @@ function Login({ setUser }) {
               aria-invalid={!!error}
               aria-describedby={error ? 'login-error' : undefined}
               required
+              disabled={loading}
             />
           </div>
 
           {error && <p id="login-error" className="error" role="alert">{error}</p>}
 
-          <button type="submit" style={{ width: '100%', marginTop: '1rem' }}>
-            Log In
+          <button type="submit" style={{ width: '100%', marginTop: '1rem' }} disabled={loading}>
+            {loading ? 'Logging in...' : 'Log In'}
           </button>
           
-          <p style={{ fontSize: '0.85rem', color: 'var(--muted)', textAlign: 'center', marginTop: '1rem' }}>
-            Demo: Any email and password work
-          </p>
+          <button 
+            type="button" 
+            onClick={handleRegister} 
+            style={{ width: '100%', marginTop: '0.5rem', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)' }}
+            disabled={loading}
+          >
+            {loading ? 'Registering...' : 'Register'}
+          </button>
         </form>
       </main>
     </>

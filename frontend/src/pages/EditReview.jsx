@@ -2,11 +2,14 @@ import { useState, useEffect, useContext } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import { ReviewContext } from '../App'
+import { reviewsAPI } from '../utils/api'
 
 function EditReview() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { reviews, setReviews } = useContext(ReviewContext)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   
   const [formData, setFormData] = useState({
     album: '',
@@ -18,50 +21,77 @@ function EditReview() {
   })
 
   useEffect(() => {
-    const review = reviews.find(r => r.id === id)
-    if (review) {
-      setFormData({
-        ...review,
-        rating: review.rating.toString()
-      })
-    } else {
-      navigate('/dashboard')
+    fetchReview()
+  }, [id])
+
+  const fetchReview = async () => {
+    try {
+      const review = await reviewsAPI.getOne(id)
+      if (review) {
+        setFormData({
+          ...review,
+          rating: review.rating.toString()
+        })
+      } else {
+        navigate('/dashboard')
+      }
+    } catch (err) {
+      // Fall back to local state
+      const review = reviews.find(r => r._id === id || r.id === id)
+      if (review) {
+        setFormData({
+          ...review,
+          rating: review.rating.toString()
+        })
+      } else {
+        navigate('/dashboard')
+      }
     }
-  }, [id, reviews, navigate])
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleUpdate = (e) => {
+  const handleUpdate = async (e) => {
     e.preventDefault()
+    setLoading(true)
+    setError('')
     
-    const updatedReviews = reviews.map(review => 
-      review.id === id 
-        ? { 
-            ...review, 
-            ...formData, 
-            rating: parseInt(formData.rating),
-            date: new Date().toISOString().split('T')[0] // Update review date
-          }
-        : review
-    )
-    
-    setReviews(updatedReviews)
-    navigate(`/review/${id}`)
+    try {
+      const updatedReview = await reviewsAPI.update(id, {
+        ...formData,
+        rating: parseInt(formData.rating)
+      })
+      
+      setReviews(reviews.map(review => 
+        (review._id === id || review.id === id) ? updatedReview : review
+      ))
+      navigate(`/review/${id}`)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (window.confirm('Are you sure you want to delete this review?')) {
-      setReviews(reviews.filter(r => r.id !== id))
-      navigate('/dashboard')
+      setLoading(true)
+      try {
+        await reviewsAPI.delete(id)
+        setReviews(reviews.filter(r => r._id !== id && r.id !== id))
+        navigate('/dashboard')
+      } catch (err) {
+        setError(err.message)
+        setLoading(false)
+      }
     }
   }
 
   if (!formData.album) return <main>Loading...</main>
 
-  // Generate unique IDs for form fields
   const generateId = (field) => `edit-${field}-${Math.random().toString(36).substr(2, 6)}`
 
   return (
@@ -70,6 +100,8 @@ function EditReview() {
       
       <main className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
         <h2>Edit Review</h2>
+  
+        {error && <div className="error">{error}</div>}
   
         <form onSubmit={handleUpdate}>
           <div>
@@ -80,6 +112,7 @@ function EditReview() {
               value={formData.album}
               onChange={handleChange}
               required
+              disabled={loading}
             />
           </div>
   
@@ -91,6 +124,7 @@ function EditReview() {
               value={formData.artist}
               onChange={handleChange}
               required
+              disabled={loading}
             />
           </div>
   
@@ -101,6 +135,7 @@ function EditReview() {
               name="genre"
               value={formData.genre}
               onChange={handleChange}
+              disabled={loading}
             >
               <option>Pop</option>
               <option>R&B</option>
@@ -119,6 +154,7 @@ function EditReview() {
               name="rating"
               value={formData.rating}
               onChange={handleChange}
+              disabled={loading}
             >
               {[5,4,3,2,1].map(num => (
                 <option key={num} value={num}>{num} star{num !== 1 ? 's' : ''}</option>
@@ -133,6 +169,7 @@ function EditReview() {
               name="mood"
               value={formData.mood}
               onChange={handleChange}
+              disabled={loading}
             >
               <option>Happy</option>
               <option>Reflective</option>
@@ -153,12 +190,17 @@ function EditReview() {
               value={formData.reflection}
               onChange={handleChange}
               style={{ resize: 'vertical' }}
+              disabled={loading}
             />
           </div>
   
           <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-            <button type="submit">Update Review</button>
-            <button type="button" onClick={handleDelete} style={{ background: '#dc3545' }}>Delete Review</button>
+            <button type="submit" disabled={loading}>
+              {loading ? 'Updating...' : 'Update Review'}
+            </button>
+            <button type="button" onClick={handleDelete} style={{ background: '#dc3545' }} disabled={loading}>
+              Delete Review
+            </button>
           </div>
         </form>
       </main>

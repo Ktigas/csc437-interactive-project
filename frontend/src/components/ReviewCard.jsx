@@ -2,10 +2,11 @@ import { Link } from 'react-router-dom'
 import Stars from './Stars'
 
 function ReviewCard({ review }) {
-  const { id, album, artist, genre, mood, rating, coverArt } = review
+  const { _id, id, album, artist, genre, mood, rating, coverArt } = review
+  const reviewId = _id || id
   
   return (
-    <Link to={`/review/${id}`} className="card review" aria-label={`View review for ${album} by ${artist}`}>
+    <Link to={`/review/${reviewId}`} className="card review" aria-label={`View review for ${album} by ${artist}`}>
       <img 
         src={coverArt || "https://placehold.co/400x400/1f2329/9aa0a6?text=Album+Cover"} 
         alt={`${album} album cover`}

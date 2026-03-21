@@ -61,9 +61,9 @@ function Login() {
 
   return (
     <>
-      <NavBar title="Trackd" />
+      <NavBar title="Trackd 🎶" />
       <main className="card" style={{ maxWidth: '400px', margin: '2rem auto' }}>
-        <h1 style={{ textAlign: 'center', marginBottom: '0.5rem' }}>Trackd</h1>
+        <h1 style={{ textAlign: 'center', marginBottom: '0.5rem' }}>Trackd 🎶</h1>
         <p style={{ textAlign: 'center', color: 'var(--muted)', marginBottom: '2rem' }}>
           Your personal music review journal.
         </p>

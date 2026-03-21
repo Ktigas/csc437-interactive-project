@@ -5,6 +5,8 @@ import { connectToDatabase, setupIndexes } from "./db.js";
 import authRoutes from "./routes/auth.js";
 import reviewRoutes from "./routes/reviews.js";
 import { authenticateToken } from "./middleware/auth.js";
+import path from "path";
+import { fileURLToPath } from "url";
 
 dotenv.config();
 
@@ -45,6 +47,8 @@ app.use((req, res, next) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/reviews", authenticateToken, reviewRoutes);
 
+
+
 app.get("/api/health", (req, res) => {
   res.json({ 
     status: dbReady ? "ok" : "degraded",
@@ -53,6 +57,20 @@ app.get("/api/health", (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+
+// Fix __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Serve frontend static files
+app.use(express.static(path.join(__dirname, "../../frontend/dist")));
+
+// SPA fallback (for React/Vite routing)
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../../frontend/dist/index.html"));
+});
+
 
 app.use((err, req, res, next) => {
   console.error("Server error:", err);
